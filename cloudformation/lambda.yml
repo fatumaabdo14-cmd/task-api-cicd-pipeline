@@ -19,7 +19,7 @@ Resources:
   TaskFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: task-api-function
+      FunctionName: !Sub "task-api-function-${AWS::StackName}"
       Runtime: python3.12
       Handler: lambda_function.lambda_handler
       Role: !GetAtt TaskLambdaExecutionRole.Arn
