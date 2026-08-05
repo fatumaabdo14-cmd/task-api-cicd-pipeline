@@ -14,6 +14,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
 
   TaskFunction:
     Type: AWS::Lambda::Function
@@ -25,10 +26,40 @@ Resources:
       Code:
         ZipFile: |
           import json
+          import boto3
+
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table('tasks-table')
+
           def lambda_handler(event, context):
-              return {"statusCode": 200, "body": "placeholder"}
+              table.put_item(Item={"id": "1", "title": "Learn CloudFormation"})
+              table.put_item(Item={"id": "2", "title": "Build a CI/CD pipeline"})
+
+              response = table.scan()
+              tasks = response.get('Items', [])
+
+              return {
+                  "statusCode": 200,
+                  "body": json.dumps({"tasks": tasks})
+              }
+
+  TasksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: tasks-table
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
 
 Outputs:
   FunctionArn:
     Description: ARN of the Lambda function
     Value: !GetAtt TaskFunction.Arn
+
+  TasksTableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt TasksTable.Arn
