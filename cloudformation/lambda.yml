@@ -19,25 +19,27 @@ Resources:
   TaskFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: task-api-function
+      FunctionName: !Sub "task-api-function-${AWS::StackName}"
       Runtime: python3.12
       Handler: lambda_function.lambda_handler
       Role: !GetAtt TaskLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TasksTable
       Code:
         ZipFile: |
           import json
+          import os
           import boto3
 
           dynamodb = boto3.resource('dynamodb')
-          table = dynamodb.Table('tasks-table')
+          table = dynamodb.Table(os.environ['TABLE_NAME'])
 
           def lambda_handler(event, context):
               table.put_item(Item={"id": "1", "title": "Learn CloudFormation"})
               table.put_item(Item={"id": "2", "title": "Build a CI/CD pipeline"})
-
               response = table.scan()
               tasks = response.get('Items', [])
-
               return {
                   "statusCode": 200,
                   "body": json.dumps({"tasks": tasks})
@@ -46,7 +48,7 @@ Resources:
   TasksTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: tasks-table
+      TableName: !Sub "tasks-table-${AWS::StackName}"
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
